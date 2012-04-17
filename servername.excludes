@@ -1,0 +1,11 @@
+/dev
+/proc
+/sys
+/media
+/mnt
+/swapfile
+/tmp
+/var/tmp
+/var/lib/mysql/
+/var/lib/varnish/servername
+
