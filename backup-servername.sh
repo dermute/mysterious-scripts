@@ -25,7 +25,7 @@ DESTINATION="/media/servername/$TODAY/"
 mount /media/servername
 
 # Keep database backups in a separate directory.
-mkdir -p /media/media/servername/db
+mkdir -p /media/servername/db
 
 # This command rsync's files from the remote server to the local server.
 # Flags:
