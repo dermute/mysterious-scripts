@@ -6,28 +6,40 @@
 # it will need to be placed in /etc/cron.hourly, and the $TODAY / $YESTERDAY
 # variables will need to be changed.
 
+# If you want an mysql-Backup, create a file mysql.server.tld containing your mysql-root-pw
+
+#####
+# set the following Variables
+#####
+
+# Target directory for your backup
+BACKDIR=/mnt/backup
+
+# This is a list of files to ignore from backups.
+EXCLUDES="excludes"
+
+#####
+# do not change the following
+####
+
 TODAY=`date +"%Y%m%d"`
 YESTERDAY=`date -d "1 day ago" +"%Y%m%d"`
 
 # Set the path to rsync on the remote server so it runs with sudo.
 RSYNC="/usr/bin/sudo /usr/bin/rsync"
 
-# This is a list of files to ignore from backups.
-EXCLUDES="excludes"
-
 # Servername
-SERVERNAME="$1"
-
-# BACKUP-DIR
-BACKDIR=/mnt/backup
+if [ -z "$1" ]; then
+	echo "usage: ./backup.sh {servername}"
+	exit 1
+else
+	SERVERNAME="$1"
+fi
 
 # I use a separate volume for backups. Remember that you will not be generating
 # backups that are particularly large (other than the initial backup), but that
 # you will be creating thousands of hardlinks on disk that will consume inodes.
 DESTINATION="/$BACKDIR/$SERVERNAME/$TODAY/"
-
-# Keep database backups in a separate directory.
-mkdir -p /$BACKDIR/$SERVERNAME/db
 
 # This command rsync's files from the remote server to the local server.
 #
@@ -55,9 +67,16 @@ rsync -z -e "ssh" \
 # preferable to back up each database to a separate file. If you do that, I
 # suggest adding a configuration file that is looped over with a bash for() 
 # loop.
-ssh $SERVERNAME "mysqldump \
-	--user=root \
-	--password="my-super-secure-password" \
-	--all-databases \
-	--lock-tables \
-	| bzip2" > /$BACKDIR/$SERVERNAME/db/$TODAY.sql.bz2
+if [ -f mysql.$SERVERNAME ]; then
+	# Keep database backups in a separate directory.
+	if [ ! -d /$BACKDIR/$SERVERNAME/db ]; then
+		mkdir -p /$BACKDIR/$SERVERNAME/db
+	fi
+
+	ssh $SERVERNAME "mysqldump \
+		--user=root \
+		--password="`cat mysql.$SERVERNAME`" \
+		--all-databases \
+		--lock-tables \
+		| bzip2" > /$BACKDIR/$SERVERNAME/db/$TODAY.sql.bz2
+fi
