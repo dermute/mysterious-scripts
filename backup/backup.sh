@@ -23,7 +23,6 @@ EXCLUDES="excludes"
 ####
 
 TODAY=`date +"%Y%m%d"`
-YESTERDAY=`date -d "1 day ago" +"%Y%m%d"`
 
 # Set the path to rsync on the remote server so it runs with sudo.
 RSYNC="/usr/bin/sudo /usr/bin/rsync"
@@ -40,6 +39,13 @@ fi
 # backups that are particularly large (other than the initial backup), but that
 # you will be creating thousands of hardlinks on disk that will consume inodes.
 DESTINATION="/$BACKDIR/$SERVERNAME/$TODAY/"
+
+for i in {1..28}; do
+	LINKDATE=`date -d "$i day ago" +"%Y%m%d"`
+	if [ -d /$BACKDIR/$SERVERNAME/$LINKDATE ]; then
+		break;
+	fi
+done
 
 # This command rsync's files from the remote server to the local server.
 #
@@ -61,7 +67,7 @@ rsync -z -e "ssh" \
 	--archive \
 	--exclude-from=$EXCLUDES \
 	--numeric-ids \
-	--link-dest=../$YESTERDAY $SERVERNAME:/ $DESTINATION
+	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
 # Backup all databases. I backup all databases into a single file. It might be
 # preferable to back up each database to a separate file. If you do that, I
