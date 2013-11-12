@@ -15,6 +15,11 @@
 # Target directory for your backup
 BACKDIR=/mnt/backup
 
+# set the retention time
+RETENTION=8
+#RETENTIONFORMAT="day"
+RETENTIONFORMAT="week"
+
 # This is a list of files to ignore from backups.
 EXCLUDES="excludes"
 
@@ -68,6 +73,8 @@ rsync -z -e "ssh" \
 	--exclude-from=$EXCLUDES \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
+
+find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
 
 # Backup all databases. I backup all databases into a single file. It might be
 # preferable to back up each database to a separate file. If you do that, I
