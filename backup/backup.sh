@@ -19,6 +19,7 @@ BACKDIR=/mnt/backup
 RETENTION=8
 #RETENTIONFORMAT="day"
 RETENTIONFORMAT="week"
+KEEP=2
 
 # This is a list of files to ignore from backups.
 EXCLUDES="excludes"
@@ -40,12 +41,15 @@ else
 	SERVERNAME="$1"
 fi
 
-# I use a separate volume for backups. Remember that you will not be generating
-# backups that are particularly large (other than the initial backup), but that
-# you will be creating thousands of hardlinks on disk that will consume inodes.
 DESTINATION="/$BACKDIR/$SERVERNAME/$TODAY/"
 
-for i in {1..28}; do
+if [ $RETENTIONFORMAT -eq "day" ]; then
+	MAXLINKDAYS=$RETENTION
+else
+	MAXLINKDAYS=$((RETENTION*7))
+fi
+
+for i in {1..$MAXLINKDAYS}; do
 	LINKDATE=`date -d "$i day ago" +"%Y%m%d"`
 	if [ -d /$BACKDIR/$SERVERNAME/$LINKDATE ]; then
 		break;
@@ -74,7 +78,9 @@ rsync -z -e "ssh" \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
-find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
+if [ `find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION | wc -l` -gt $KEEP ]; then
+	find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
+fi
 
 # Backup all databases. I backup all databases into a single file. It might be
 # preferable to back up each database to a separate file. If you do that, I
