@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#set -xv
 # This is a simple backup script that uses rsync to backup files and does
 # complete mysql table dumps.
 # Place it in /etc/cron.daily or /etc/cron.weekly to execute it automatically.
@@ -24,7 +24,7 @@ RETENTIONFORMAT="week"
 KEEP=2
 
 # This is a list of files to ignore from backups.
-EXCLUDES="excludes"
+EXCLUDES="`pwd`/excludes"
 
 # Set the path to rsync on the remote server so it runs with sudo.
 SUDO="/usr/bin/sudo"
@@ -46,13 +46,13 @@ TODAY=`date +"%Y%m%d"`
 
 DESTINATION="/$BACKDIR/$SERVERNAME/$TODAY/"
 
-if [ $RETENTIONFORMAT -eq "day" ]; then
+if [ $RETENTIONFORMAT == "day" ]; then
 	RETENTIONDAYS=$RETENTION
 else
 	RETENTIONDAYS=$((RETENTION*7))
 fi
 
-for i in {1..$RETENTIONDAYS}; do
+for i in `seq 1 $RETENTIONDAYS`; do
 	LINKDATE=`date -d "$i day ago" +"%Y%m%d"`
 	if [ -d /$BACKDIR/$SERVERNAME/$LINKDATE ]; then
 		break;
@@ -72,15 +72,15 @@ done
 # Note the NOPASSWD option in the sudo configuration. For remote
 # authentication use a password-less SSH key only allowed read permissions by
 # the backup server's root user.
-$SUDO -i $BACKUSR rsync -z -e "ssh" \
+$SUDO -i -u $BACKUSR rsync -z -e "ssh" \
 	--rsync-path="$RSYNC" \
 	--archive \
 	--exclude-from=$EXCLUDES \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
-if [ `$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
-	$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
+if [ `$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
+	$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
 fi
 
 # Backup all databases. I backup all databases into a single file.
@@ -90,7 +90,7 @@ if [ -f mysql.$SERVERNAME ]; then
 		mkdir -p /$BACKDIR/$SERVERNAME/db
 	fi
 
-	$SUDO -i $BACKUSR ssh $SERVERNAME "mysqldump \
+	$SUDO -i -u $BACKUSR ssh $SERVERNAME "mysqldump \
 		--user=root \
 		--password="`cat mysql.$SERVERNAME`" \
 		--all-databases \
