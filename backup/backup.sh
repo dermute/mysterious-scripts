@@ -47,12 +47,12 @@ TODAY=`date +"%Y%m%d"`
 DESTINATION="/$BACKDIR/$SERVERNAME/$TODAY/"
 
 if [ $RETENTIONFORMAT -eq "day" ]; then
-	MAXLINKDAYS=$RETENTION
+	RETENTIONDAYS=$RETENTION
 else
-	MAXLINKDAYS=$((RETENTION*7))
+	RETENTIONDAYS=$((RETENTION*7))
 fi
 
-for i in {1..$MAXLINKDAYS}; do
+for i in {1..$RETENTIONDAYS}; do
 	LINKDATE=`date -d "$i day ago" +"%Y%m%d"`
 	if [ -d /$BACKDIR/$SERVERNAME/$LINKDATE ]; then
 		break;
@@ -79,8 +79,8 @@ $SUDO -i $BACKUSR rsync -z -e "ssh" \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
-if [ `$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION | wc -l` -gt $KEEP ]; then
-	$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
+if [ `$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
+	$SUDO -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
 fi
 
 # Backup all databases. I backup all databases into a single file.
