@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # This is a simple backup script that uses rsync to backup files and does
-# complete mysql table dumps. Note that this script DOES NOT EXPIRE OLD BACKUPS.
+# complete mysql table dumps.
 # Place it in /etc/cron.daily to execute it automatically. For hourly backups,
 # it will need to be placed in /etc/cron.hourly, and the $TODAY / $YESTERDAY
 # variables will need to be changed.
@@ -14,6 +14,8 @@
 
 # Target directory for your backup
 BACKDIR=/mnt/backup
+
+BACKUSR=mute
 
 # set the retention time
 RETENTION=8
@@ -71,15 +73,15 @@ done
 # Note the NOPASSWD option in the sudo configuration. For remote
 # authentication use a password-less SSH key only allowed read permissions by
 # the backup server's root user.
-rsync -z -e "ssh" \
+sudo -i $BACKUSR rsync -z -e "ssh" \
 	--rsync-path="$RSYNC" \
 	--archive \
 	--exclude-from=$EXCLUDES \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
-if [ `find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION | wc -l` -gt $KEEP ]; then
-	find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
+if [ `sudo -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION | wc -l` -gt $KEEP ]; then
+	sudo -i $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTION -exec rm -rf {} \;
 fi
 
 # Backup all databases. I backup all databases into a single file. It might be
@@ -92,7 +94,7 @@ if [ -f mysql.$SERVERNAME ]; then
 		mkdir -p /$BACKDIR/$SERVERNAME/db
 	fi
 
-	ssh $SERVERNAME "mysqldump \
+	sudo -i $BACKUSR ssh $SERVERNAME "mysqldump \
 		--user=root \
 		--password="`cat mysql.$SERVERNAME`" \
 		--all-databases \
