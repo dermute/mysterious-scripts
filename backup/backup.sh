@@ -72,15 +72,18 @@ done
 # Note the NOPASSWD option in the sudo configuration. For remote
 # authentication use a password-less SSH key only allowed read permissions by
 # the backup server's root user.
-$SUDO -i -u $BACKUSR rsync -z -e "ssh" \
-	--rsync-path="$RSYNC" \
+#$SUDO -i -u $BACKUSR rsync -z -e "ssh" \
+	#--rsync-path="$RSYNC" \
+rsync -z -e "ssh" \
 	--archive \
 	--exclude-from=$EXCLUDES \
 	--numeric-ids \
 	--link-dest=../$LINKDATE $SERVERNAME:/ $DESTINATION
 
-if [ `$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
-	$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
+#if [ `$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
+if [ `find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db | wc -l` -gt $KEEP ]; then
+	#$SUDO -i -u $BACKUSR find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
+	find /$BACKDIR/$SERVERNAME/ -mindepth 1 -maxdepth 1 -type d ! -name db -mtime +$RETENTIONDAYS -exec rm -rf {} \;
 fi
 
 # Backup all databases. I backup all databases into a single file.
@@ -90,7 +93,8 @@ if [ -f mysql.$SERVERNAME ]; then
 		mkdir -p /$BACKDIR/$SERVERNAME/db
 	fi
 
-	$SUDO -i -u $BACKUSR ssh $SERVERNAME "mysqldump \
+	#$SUDO -i -u $BACKUSR ssh $SERVERNAME "mysqldump \
+	ssh $SERVERNAME "mysqldump \
 		--user=root \
 		--password="`cat mysql.$SERVERNAME`" \
 		--all-databases \
